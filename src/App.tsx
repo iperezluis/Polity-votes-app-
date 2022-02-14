@@ -1,26 +1,72 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect, useRef, useContext } from "react";
 
-function App() {
+import BandAdd from "./components/BandAdd";
+import BandList from "./components/BandList";
+import { SocketContext } from "./context/SocketContext";
+import { useBand } from "./hooks/useBand";
+import { useSocket } from "./hooks/useSocket";
+// import { BandChart } from "./components/BandChart";
+import { BandCharts } from "./components/BandCharts";
+import {
+  Chart,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  registerables,
+  Title,
+} from "chart.js";
+import { useGraphics } from "./hooks/useGraphics";
+
+Chart.register(...registerables);
+
+const HomePage = () => {
+  const { bands, setBands } = useBand();
+  // const isMounted = useRef<boolean>();
+  const { socket, onLine } = useContext(SocketContext);
+  const { createGraphics } = useGraphics();
+
+  useEffect(() => {
+    socket.on("band-list-current", (bands) => {
+      console.log(bands);
+      setBands([...bands]);
+      //si el bandList fuera ser destruido vamos a ejecutar el return para que ya no este pendiente el listener del evento
+    });
+    return () => {
+      socket.off("band-list-current");
+    };
+  }, [socket]);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
+    <div className="container">
+      <div className="alert">
         <p>
-          Edit <code>src/App.tsx</code> and save to reload.
+          Service status:
+          {onLine ? (
+            <span className="text-success"> onLine</span>
+          ) : (
+            <span className="text-danger"> offLine</span>
+          )}
         </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+        <h1>BandNames</h1>
+        <div className="row" id="chart">
+          <div className="col">
+            <BandCharts />
+          </div>
+        </div>
+        <hr />
+        <div className="row">
+          <div className="col-8">
+            <BandList data={bands} />
+          </div>
+          <div className="col-4">
+            <BandAdd title="Agregar nueva banda" />
+          </div>
+        </div>
+        {/* <div className="">{JSON.stringify(bands, null, 4)}</div> */}
+      </div>
     </div>
   );
-}
+};
 
-export default App;
+export default HomePage;
